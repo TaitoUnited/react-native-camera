@@ -83,6 +83,14 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
                                                      name:AVAudioSessionInterruptionNotification
                                                    object:nil];
         self.autoFocus = -1;
+        
+        // Code for bluetooth functionality
+        self.session.usesApplicationAudioSession = true;
+        self.session.automaticallyConfiguresApplicationAudioSession = false;
+        
+        AVAudioSession* audioSession = [AVAudioSession sharedInstance];
+        [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionAllowBluetooth error:nil];
+        [audioSession setActive:true error:nil];
 
     }
     return self;
