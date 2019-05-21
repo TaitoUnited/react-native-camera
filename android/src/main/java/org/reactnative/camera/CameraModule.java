@@ -290,37 +290,16 @@ public class CameraModule extends ReactContextBaseJavaModule {
         });
     }
 
-    private int countConnectedDevices(ReactApplicationContext context) {
-        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        BluetoothProfile.ServiceListener mProfileListener = new BluetoothProfile.ServiceListener() {
-            public void onServiceConnected(int profile, BluetoothProfile proxy) {
-                if (profile == BluetoothProfile.HEADSET) {
-                    mBluetoothHeadset = (BluetoothHeadset) proxy;
-                }
-            }
-
-            public void onServiceDisconnected(int profile) {
-                if (profile == BluetoothProfile.HEADSET) {
-                    mBluetoothHeadset = null;
-                }
-            }
-        };
-
-        mBluetoothAdapter.getProfileProxy(context, mProfileListener, BluetoothProfile.HEADSET);
-        if (mBluetoothHeadset != null) {
-            List<BluetoothDevice> devices = mBluetoothHeadset.getConnectedDevices();
-            mBluetoothAdapter.closeProfileProxy(BluetoothProfile.HEADSET, mBluetoothHeadset);
-            return devices.size();
-        }
-        return 0;
+    private boolean isDeviceConnected(ReactApplicationContext context) {
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        return (bluetoothAdapter != null && BluetoothProfile.STATE_CONNECTED == bluetoothAdapter.getProfileConnectionState(BluetoothProfile.HEADSET));
     }
 
     private BroadcastReceiver mBluetoothScoReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1);
-            System.out.println("_SCO: " + state);
             if (state == AudioManager.SCO_AUDIO_STATE_CONNECTED) {
                 recCameraView.record(recOptions, recPromise, recCacheDirectory);
             }
@@ -340,14 +319,14 @@ public class CameraModule extends ReactContextBaseJavaModule {
 
                 try {
                     cameraView = (RNCameraView) nativeViewHierarchyManager.resolveView(viewTag);
+                    System.out.println(cameraView);
                     if (cameraView.isCameraOpened()) {
                         recCameraView = cameraView;
                         recOptions = options;
                         recPromise = promise;
                         recCacheDirectory = cacheDirectory;
-                        int devicesCount = countConnectedDevices(context);
-                        
-                        if (devicesCount > 0) {
+                        boolean isDeviceConnected = isDeviceConnected(context);
+                        if (isDeviceConnected == true) {
                             IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
                             context.registerReceiver(mBluetoothScoReceiver, intentFilter);
                             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
@@ -364,6 +343,8 @@ public class CameraModule extends ReactContextBaseJavaModule {
             }
         });
     }
+
+
 
     @ReactMethod
     public void stopRecording(final int viewTag) {
